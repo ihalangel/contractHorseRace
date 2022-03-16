@@ -1,9 +1,18 @@
 const Horses = artifacts.require("Horses");
 
 
-contract('Horses', accounts => (
-    // [alice, bob]=accounts; 
-    // console.log('Alice:'.alice);
-    console.log(accounts[0])
+contract('Horses', accounts => {
+    [alice, bob, carlos, dani] = accounts;
+    console.log('Alice:', alice, 'Bob', bob);
 
-));
+
+
+    let HorsesIntance;
+
+    beforeEach async() => {
+        HorsesIntance = await Horses.new();
+
+    };
+
+
+});

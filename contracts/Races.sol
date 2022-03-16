@@ -20,15 +20,14 @@ struct Race {
         uint min_winners;
         uint max_winners;  //requisito
         uint w_continues; // requisito 
-        uint[] premios;
-        //mapping(address => uint)  registeredHorses; 
-        Horses[] horses;
+        uint[] premios;        
+        Enrolled[] enrolled;
         Resultados[]resultados;
         uint hour; //hora de partida
         uint contRace; // contador  
          }
     
-struct Horses{
+struct Enrolled{
     address ownerHorse;
     uint tokenid;
         }
@@ -84,7 +83,7 @@ horses[_tokenId].races.lastrace=block.timestamp;
 // traer datos verdaderos de tokens
 function listhorse(uint _race, uint _tokenId)  public payable   {
 Race storage r= RacesMap[_race]; //Consulta a array Race
-uint Ppartida = r.horses.length +1;
+uint Ppartida = r.enrolled.length +1;
 uint maxTickets=r.maxTickets;
 require( Ppartida <= maxTickets,"Registrations closed" );
 address owner = ERC721.ownerOf(_tokenId);             //Comprobamos owner
@@ -116,7 +115,7 @@ Race storage r= RacesMap[_race]; //Consulta a array Race
 //uint maxWinners_r=r.max_winners;
 //uint winners_h=horses[_tokenId].races.winners;  //Cargando datos de horse
 //if (winners_h >= minWinners_r && winners_h <= maxWinners_r){
-r.horses.push(Horses(msg.sender,_tokenId));
+r.enrolled.push(Enrolled(msg.sender,_tokenId));
 //r.resultados.push(Resultados(_tokenId,score,1,0,0,0,0,Ppartida,0,0,0)); 
 //}
 //revert CantRegister();
@@ -196,7 +195,7 @@ r.resultados[i]=(Resultados(tk_id,scr,add,m1,m2,ramdonmult3,poinst));
 //Falta, crear desempate con el tokend de menor id minteo
 function claimRewards(uint race_)public  {
 Race storage r= RacesMap[race_]; 
-uint Pp_c =r.horses.length - 1;
+uint Pp_c =r.enrolled.length - 1;
 for (uint i = 0;  i <= Pp_c; i++ ){
 uint tk_id=r.resultados[i].tokenid;
 uint scr=r.resultados[i].poinst;
@@ -216,7 +215,7 @@ llegada -1; }
 j++;
 }
 r.resultados[j].llegada =llegada ;
-//r.horses[i].llegada =llegada ;
+//r.enrolled[i].llegada =llegada ;
     
 }
 }
@@ -264,8 +263,8 @@ function _gPoinst(uint m1_, uint m2_, uint scr_, uint add_,uint mul_ )internal p
 function gListhorse(uint race_, uint tokenid_)  public view returns(uint inscritos,uint tk_id)  { 
 //Traemos de horses en Race;
 Race storage r= RacesMap[race_];
-uint Tid=r.horses[tokenid_].tokenid;
-uint uno=r.horses.length;
+uint Tid=r.enrolled[tokenid_].tokenid;
+uint uno=r.enrolled.length;
 return(uno,Tid);
 }
 
@@ -286,7 +285,7 @@ return(Tid,scr,add,m1,m2,pts);
 
 function getRHorsesLenght(uint race_)public view returns(uint length){
 Race storage r= RacesMap[race_];
-uint uno =r.horses.length;
+uint uno =r.enrolled.length;
 return(uno);
 }
 
@@ -294,7 +293,7 @@ return(uno);
     
 function getRace( uint idrace_) public view returns(string memory name,uint ganadores,uint Inscritos){
 Race memory r= RacesMap[idrace_];
-return (r.name, r.max_winners,r.horses.length); }
+return (r.name, r.max_winners,r.enrolled.length); }
  
  
 }
