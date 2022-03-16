@@ -21,17 +21,11 @@ struct Race {
         uint max_winners;  //requisito
         uint w_continues; // requisito 
         uint[] premios;
-        //mapping(address => uint)  registeredHorses; 
-        Horses[] horses;
+        mapping(address => uint)  registeredHorses; 
         Resultados[]resultados;
         uint hour; //hora de partida
         uint contRace; // contador  
          }
-    
-struct Horses{
-    address ownerHorse;
-    uint tokenid;
-        }
     
 struct Resultados{
     uint tokenid;
