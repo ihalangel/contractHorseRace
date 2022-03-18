@@ -1,293 +1,280 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-contract RacesHorses {
-    uint idnewrace=0;
-    uint Mod1= 10 ** 1;
-    uint private constant N_P= 20;
-    error  CantRegister();
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+
+contract Horses is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Ownable, ERC721Burnable {
+    using Counters for Counters.Counter;
+      using Strings for uint256;
+ //address payable owner;
+    event NewHorse(string name, uint dna, uint8[3]  hb1, uint health, uint racelimit, uint monta);
+   /** event TraineHorse
+    event */
+
+   error InvalidAmount();
+   error NotOwner();
+
+     
+    uint  dnaDigits = 14;
+    uint  dnaModulus = 10 ** dnaDigits;
+    uint  lvlDigits= 2;
+    uint  lvlDigits2= 4;
+    uint  lvlget25= (10 ** lvlDigits) / 4;
+    uint  lvlget00= 10 ** lvlDigits;
+    uint  lvlget0000= 10 ** lvlDigits2;
+    uint  eated = 0; 
+    
+    uint  pricelv1=5 ether;
+    uint  pricelv2=3 ether;
+    uint  pricelv3=2 ether;
+    uint  pricelv4=1000000000000000000;
+    uint  pricelv5=0.5 ether;
+    uint256 public maxSupplyLv1 = 2;
+    uint256 public maxSupplyLv2 = 3;
+    uint256 public maxSupplyLv3 = 5;
+    uint256 public maxSupplyLv4 = 5;
+    uint256 public maxSupplyLv5 = 5;
+    uint256 public maxSupplyLv6 = 5;
+    uint256 public suplylvl1= 0;
+    uint256 public suplylvl2= 0;
+    uint256 public suplylvl3= 0;
+    uint256 public suplylvl4= 0;
+    uint256 public suplylvl5= 0;
     
     
-struct Race {
-        string name;
-        uint maxTickets;
-        uint min_winners;
-        uint max_winners;  //requisito
-        uint w_continues; // requisito 
-        uint[] premios;        
-        Enrolled[] enrolled;
-        Resultados[]resultados;
-        uint hour; //hora de partida
-        uint contRace; // contador  
-         }
-    
-struct Enrolled{
-    address ownerHorse;
-    uint tokenid;
-        }
-    
-struct Resultados{
-    uint tokenid;
-    uint score;
-    uint additional;
-    uint m1;
-    uint m2;
-    uint x;
-    uint poinst; 
-    uint Ppartida;
-    uint llegada; // Puesto de llegada 
-    uint premio1;
-    uint premio2;
-}    
+ struct Races {
+    uint winners;
+    uint continues;
+    uint skill;
+    uint lastrace;//tine
+    bool claim;
+    uint[] raced;
+  }
 
 
-    
-   
- mapping(uint => Race)  RacesMap; 
- address[] WhitelisteContract;
+ struct  StatsGen{
+ uint dna;
+ uint dad;
+ uint mom;
+ uint birthdate;
+ uint generation;
+ }
   
-
-
-
-  //CREATES function
- 
-function createrace(string memory name_,uint _maxTickets, uint _minWinners, uint  _maxWinners, uint _w_continues) public onlyOwner{
-     idnewrace= idnewrace +1;
-     Race storage r= RacesMap[idnewrace];
-     r.name = name_;
-     r.maxTickets= _maxTickets;
-     r.min_winners = _minWinners;
-     r.max_winners = _maxWinners;
-     r.w_continues= _w_continues; 
- }   
-
-function _horsesReady(uint _tokenId)internal {
-uint lastrace=horses[_tokenId].races.lastrace;//Time: ultima carrera
-uint timeLastRace= lastrace + 120;//Sumamos 5 minutos de sleep
-require (timeLastRace < block.timestamp,"Horse not ready jet");
-horses[_tokenId].races.lastrace=block.timestamp;
-}
-
-//Falta: Solo puede listarse si la carrera existe y se encuentra en estado de enlistamiento.
-//Falta: Solo puede listar el dueño del tokenid_
-//Falta: Es una function pausable  ?
-//Falta: Es una function only Owner
-// Devolver error del list cuando no enlista
-// Misma cartera no puede inscribir mas de 2 caballos
-// traer datos verdaderos de tokens
-function listhorse(uint _race, uint _tokenId)  public payable   {
-Race storage r= RacesMap[_race]; //Consulta a array Race
-uint Ppartida = r.enrolled.length +1;
-uint maxTickets=r.maxTickets;
-require( Ppartida <= maxTickets,"Registrations closed" );
-address owner = ERC721.ownerOf(_tokenId);             //Comprobamos owner
-require(_msgSender() == owner,"caller is not owner"); // Comprobando owner
-/*uint minWinners_r=r.min_winners;
-uint maxWinners_r=r.max_winners;*/
-_horsesReady(_tokenId);
-_pushHorse(_tokenId,_race);
-
-/*uint winners_h=horses[_tokenId].races.winners;  //Cargando datos de horse
-/*uint continues=horses[_tokenId].races.continues;//Gamadas y continuas
-string memory nameH=horses[_tokenId].name;//Cargando Datos Horses name
-uint hb1=horses[_tokenId].hb1;     //Hb1  Hb2 y 3 + adicional
-uint hb2=horses[_tokenId].hb2;     
-uint hb3=horses[_tokenId].hb3;    //Adicional es  Healt + Jockey + herramientas 
-uint score=hb1 + hb2 +hb3;             
-//_pushHorse(_tokenId,timeLastRace,winners_h,_race);
-if (winners_h >= minWinners_r && winners_h <= maxWinners_r){
-r.horses.push(Horses(msg.sender,_tokenId));
-//r.resultados.push(Resultados(_tokenId,score,1,0,0,0,0,Ppartida,0,0,0)); 
-}
-revert CantRegister();
-*/
-}
-
-function _pushHorse(uint _tokenId,uint _race) internal{
-Race storage r= RacesMap[_race]; //Consulta a array Race
-//uint minWinners_r=r.min_winners;
-//uint maxWinners_r=r.max_winners;
-//uint winners_h=horses[_tokenId].races.winners;  //Cargando datos de horse
-//if (winners_h >= minWinners_r && winners_h <= maxWinners_r){
-r.enrolled.push(Enrolled(msg.sender,_tokenId));
-//r.resultados.push(Resultados(_tokenId,score,1,0,0,0,0,Ppartida,0,0,0)); 
-//}
-//revert CantRegister();
-} 
-
-
-                     //               
-/*uint additional=25;          //
-uint ramdonmult1= _gRamMult(score);
-
- // Cargando Datos de Carrera
-string memory stringdata="Inscrito";
-*/
-
-/*
-if (winners_h >= minWinners_r && winners_ <= maxWinners_r){
+struct  Stats{
+   uint _hb1;
+   uint _hb2;
+   uint _hb3;
+   uint lastfed; //tiempo de ultima comida
+   uint health;  //Puntos de salud
+   uint racelimit;
+   uint monta;}
     
+struct Horse {
+        string name;
+        uint8[3] hb;// HB 1->3
+        StatsGen statsGen;
+        Stats stats;
+        Races races;   }
 
-}    
-string memory stringdata="Inscrito";
-uint N_p = N_P;   
-Race storage r= RacesMap[race_];
-uint race_winners = r.winners;
-uint Ppartida = r.horses.length +1;
-if (race_winners != 0){
-if (Ppartida < N_p){  
-//+Race.Resultados
-r.horses.push(Horses(msg.sender,tokenid_,race_,Ppartida,0,21,22));
+    Horse[] public horses;
 
-uint ramdonmult1= _gRamMult(score_);//multiplicador traido del listqr
-//+Race.Resultados
-r.resultados.push(Resultados(tokenid_,score_,5,ramdonmult1,0,0,0)); 
-}else{ stringdata="Inscripciones finalizadas"; return (stringdata);}    
-}else{ stringdata="Carrera no disponible"; return (stringdata);}}
+    Counters.Counter private _tokenIdCounter;
+
+    constructor() ERC721("MyToken", "MTK") {}
+
+    function _baseURI() internal pure override returns (string memory) {
+        return "https//www.polh.com/";
+    }
+
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    function unpause() public onlyOwner {
+        _unpause();
+    }
+
+    function safeMint(string memory _name) public payable {
+        uint valor= msg.value;
+        uint hb_x = _lvlbuyer(valor);
+        uint8 hbx = uint8(hb_x);
+
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        _safeMint(msg.sender, tokenId);
+        _createminthorse(_name,hbx);
+        
+    }
+
+      function _createminthorse(string memory _name,uint8 _hbx) internal {
+        uint randDna = _gRamDna(_name);
+        uint health = 100;
+        uint monta = (randDna % lvlget00) + 25;
+        uint8[3] memory hb1 = _gRamLv(_hbx, _name); 
+        uint racelimit= (randDna % lvlget0000) /2 +1000;
+        Stats memory stats=Stats({_hb1:0 , _hb2:0 , _hb3:0, lastfed:block.timestamp, health:100,racelimit:racelimit ,monta:monta});
+        StatsGen memory statsGen=StatsGen({ dna:0 , dad:0 , mom:0, birthdate:block.timestamp, generation:0});
+        Races memory races= Races({ winners:0 , continues:0 ,skill:0,lastrace:block.timestamp ,claim: false, raced: new uint256[](0) });
+        horses.push(Horse( _name, hb1,statsGen, stats, races));
+        emit NewHorse(_name,randDna,hb1,health, racelimit, monta);
+    }
 
 
-function  playrace(uint idrace_) public onlyOwner{
-Race storage r= RacesMap[idrace_];
-uint Pp =r.horses.length - 1;
-for (uint i = 0;  i <= Pp; i++ ){
-uint tk_id=r.resultados[i].tokenid;
-uint scr=r.resultados[i].score;
-uint add=r.resultados[i].additional;
-uint m1=r.resultados[i].m1;
-uint m2= _gRamMult(tk_id);
-uint ramdonmult3= _gRamMult(i);
-uint poinst= _gPoinst(m1,m2,scr,add,ramdonmult3);
-r.resultados[i]=(Resultados(tk_id,scr,add,m1,m2,ramdonmult3,poinst)); */
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId)
+        internal
+        whenNotPaused
+        override(ERC721, ERC721Enumerable)
+    {
+        super._beforeTokenTransfer(from, to, tokenId);
+    }
 
-/*
-function  playrace(uint idrace_) public onlyOwner{
-Race storage r= RacesMap[idrace_];
-uint Pp =r.horses.length - 1;
-for (uint i = 0;  i <= Pp; i++ ){
-uint tk_id=r.resultados[i].tokenid;
-uint scr=r.resultados[i].score;
-uint add=r.resultados[i].additional;
-uint m1=r.resultados[i].m1;
-uint m2= _gRamMult(tk_id);
-uint ramdonmult3= _gRamMult(i);
-uint poinst= _gPoinst(m1,m2,scr,add,ramdonmult3);
-r.resultados[i]=(Resultados(tk_id,scr,add,m1,m2,ramdonmult3,poinst)); 
+    // The following functions are overrides required by Solidity.
+
+    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
+        super._burn(tokenId);
+    }
+
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override(ERC721, ERC721URIStorage)
+        returns (string memory)
+    {
+        return super.tokenURI(tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721, ERC721Enumerable)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
+
+    //Mette
+
+  
     
-
-}*/
-
-
-
-
-
-
-
-
-
-
-
-//Falta, crear desempate con el tokend de menor id minteo
-function claimRewards(uint race_)public  {
-Race storage r= RacesMap[race_]; 
-uint Pp_c =r.enrolled.length - 1;
-for (uint i = 0;  i <= Pp_c; i++ ){
-uint tk_id=r.resultados[i].tokenid;
-uint scr=r.resultados[i].poinst;
-uint j=0;
-uint llegada=Pp_c;
-while ( j < Pp_c){    
-uint tk_idj=r.resultados[j].tokenid;
-uint scrj=r.resultados[j].poinst;
-
-
-if ( scrj <= scr ) { 
-//if (tk_id==tk_idj){ llegada     } 
-if (scrj == scr && tk_idj > tk_id ){ llegada - 1;     } 
-
-llegada -1; }
-
-j++;
-}
-r.resultados[j].llegada =llegada ;
-//r.enrolled[i].llegada =llegada ;
+    function _gRamDna(string memory _str) private view returns (uint) {
+        uint rand = uint(keccak256(abi.encodePacked(_str , block.timestamp)));
+        return rand % dnaModulus;
+    }
     
-}
-}
-
- /*   
-function _listingPoinst( uint race_, uint i_,uint _Ppartida, uint tk_id_, uint scr_, uint add_, uint m1_,uint m2_,uint ram3_, uint poinst_)internal{
-Race storage r= RacesMap[race_];
-r.resultados[i_]=(Resultados(tk_id_,scr_,5,m1_,m2_,ram3_,poinst_,_Ppartida,0,0,0)); }
-*/
-
-
-
-
-
-// GET functions INTERNAL
-function _gPoinst(uint m1_, uint m2_, uint scr_, uint add_,uint mul_ )internal pure returns(uint){
-     uint poinst = 0;
-     uint mul = mul_;
-    if(mul==2){poinst= (scr_*m1_/m2_) + add_; }
-    if(mul==3){poinst= (scr_*m2_/m1_) + add_; }
-    if(mul==4){poinst= (scr_*m2_/m1_) + add_ +50; }
-    if(mul==5){poinst= (scr_*m1_/m2_) + add_; }
-    return(poinst);
-} 
- 
- 
- 
- 
- function _gRamMult(uint N_) internal  view returns (uint) {
-        uint rand = uint(keccak256(abi.encodePacked(N_ , block.timestamp)));
-        uint N= rand % Mod1;
-        uint Nb= 0;
-        if (N <=2){  Nb=2;}
-        if (N == 3){  Nb=4;}
-        if (N >3 && N<=6){ Nb=3;}
-        if (N >6){  Nb=5;}
-        return(Nb);
-}
-
-
-
-
-
-// GET function Public
-function gListhorse(uint race_, uint tokenid_)  public view returns(uint inscritos,uint tk_id)  { 
-//Traemos de horses en Race;
-Race storage r= RacesMap[race_];
-uint Tid=r.enrolled[tokenid_].tokenid;
-uint uno=r.enrolled.length;
-return(uno,Tid);
-}
-
-
-
     
-function gRResultados(uint race_, uint tokenid_)  public view returns(uint Tk_id,uint Score,uint additional,uint Mult1,uint Mult2,uint Pts)  { 
-//Traemos de resultados en Race;
-Race storage r= RacesMap[race_];
-uint Tid=r.resultados[tokenid_].tokenid;
-uint scr=r.resultados[tokenid_].score;
-uint add=r.resultados[tokenid_].additional;
-uint m1=r.resultados[tokenid_].m1;
-uint m2=r.resultados[tokenid_].m2;
-uint pts=r.resultados[tokenid_].poinst;
-return(Tid,scr,add,m1,m2,pts);
-}
+    function _gRamLv( uint m_hbx, string memory _str) private view returns (uint8[3] memory hbs) {
+     uint rand =uint(keccak256(abi.encodePacked(_str, block.timestamp)));
+     uint hb1= m_hbx + (rand % lvlget25);
+     uint8 h_1= uint8(hb1);
+     uint rand2 =uint(keccak256(abi.encodePacked("Mom", block.timestamp)));
+     uint hb2= m_hbx + (rand2 % lvlget25);
+     uint8 h_2= uint8(hb2);
+     uint rand3 =uint(keccak256(abi.encodePacked("Dad", block.timestamp)));
+     uint hb3=m_hbx + (rand3 % lvlget25);
+     uint8 h_3= uint8(hb3);
+           hbs= [h_1,h_2,h_3];
+        
+    }               
 
-function getRHorsesLenght(uint race_)public view returns(uint length){
-Race storage r= RacesMap[race_];
-uint uno =r.enrolled.length;
-return(uno);
-}
-
-
+    function _lvlbuyer(uint _value) internal returns (uint) {
+       if (_value == pricelv1){
+         require(maxSupplyLv1 > suplylvl1,"Items Sold"); 
+           suplylvl1 = suplylvl1+1;
     
-function getRace( uint idrace_) public view returns(string memory name,uint ganadores,uint Inscritos){
-Race memory r= RacesMap[idrace_];
-return (r.name, r.max_winners,r.enrolled.length); }
- 
+         return (175);    
+         } 
+         else if(_value== pricelv2){require(maxSupplyLv2 > suplylvl2,"Items Sold");
+          suplylvl2 = suplylvl2+1;
+         return (150);     
+          }
+        else if(_value== pricelv3){require(maxSupplyLv3 > suplylvl3,"Items Sold");
+         suplylvl3 = suplylvl3+1;
+         return (125);     
+          }
+        else if(_value== pricelv4){require(maxSupplyLv4 > suplylvl4,"Items Sold");
+         suplylvl4 = suplylvl4+1;
+         return (100);     
+          }
+        else if(_value==pricelv5){require(maxSupplyLv5 > suplylvl5,"Items Sold");
+         suplylvl5 = suplylvl5+1;
+         return (75);     
+          } 
+          revert InvalidAmount();
+        
+    }
+    
+    function _getStructRace(uint _tokenId) view public returns(uint winners,uint continues, uint skill){
+    winners=horses[_tokenId].races.winners;
+    continues=horses[_tokenId].races.continues;
+    skill=horses[_tokenId].races.skill;
+    }
+
+
+    function _GetStructStastGen(uint _tokenId) view public returns(uint dna,uint dad, uint mom,uint birthdate, uint generation){
+     dna=horses[_tokenId].statsGen.dna;
+     dad=horses[_tokenId].statsGen.dad;
+     mom=horses[_tokenId].statsGen.mom;
+     birthdate=horses[_tokenId].statsGen.birthdate;
+     generation=horses[_tokenId].statsGen.generation;
+
+   }
+
+     function _GetStructStast(uint _tokenId) view public returns(uint _hb1,uint _hb2, uint _hb3,uint lastfed, uint health, uint racelimit, uint monta){
+       Horse storage p = horses[_tokenId];
+       return (p.stats._hb1, p.stats._hb2, p.stats._hb3, p.stats.lastfed,p.stats.health,p.stats.racelimit,p.stats.monta); 
+     
+     /*_hb1=horses[_tokenId].stats._hb1;
+     _hb2=horses[_tokenId].stats._hb2;
+     _hb3=horses[_tokenId].stats._hb3;
+     lastfed=horses[_tokenId].stats.lastfed;
+     health=horses[_tokenId].stats.health;
+     racelimit=horses[_tokenId].stats.racelimit;
+     monta=horses[_tokenId].stats.monta;*/
+     }
+
+
+     function getSkill(uint _tokenId) view public returns(uint8 Skill_1,uint8 Skill_2, uint8 Skill_3){
+       Horse storage p = horses[_tokenId];
+       Skill_1 = p.hb[0];
+       Skill_2 = p.hb[1];
+       Skill_3 = p.hb[2];
+    //   return (p.stats._hb1, p.stats._hb2, p.stats._hb3, p.stats.lastfed,p.stats.health,p.stats.racelimit,p.stats.monta); 
+     
+     /*_hb1=horses[_tokenId].stats._hb1;
+     _hb2=horses[_tokenId].stats._hb2;
+     _hb3=horses[_tokenId].stats._hb3;
+     lastfed=horses[_tokenId].stats.lastfed;
+     health=horses[_tokenId].stats.health;
+     racelimit=horses[_tokenId].stats.racelimit;
+     monta=horses[_tokenId].stats.monta;*/
+     }
+
+    function _feedHorse(uint _tokenId) public onlyOwner{
+      horses[_tokenId].stats.lastfed=block.timestamp;
+      uint health=horses[_tokenId].stats.health;
+      horses[_tokenId].stats.health=health + 5;
+        
+     }
+
+     function  _trainHorse(uint _tokenId) public {
+     address owner = ERC721.ownerOf(_tokenId);
+     require(_msgSender() == owner,"caller is not owner");
+     horses[_tokenId].stats._hb1=5;
+    }
+
+
+   function _getRacesHorse(uint _tokenId, uint) public view returns(uint[] memory races) {
+         Horse storage p = horses[_tokenId];
+         return (p.races.raced);     
+    }
+
+ //  function _postArrival(uint _tokenId, uint carrera, uint_Arrival, uint _rewards);
+     
  
 }
