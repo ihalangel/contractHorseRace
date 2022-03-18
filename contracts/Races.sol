@@ -1,19 +1,13 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.7.0 <0.9.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.4;
 
-import"./Horses.sol";
-
-contract RacesHorses is Horses{
+contract RacesHorses {
     uint idnewrace=0;
     uint Mod1= 10 ** 1;
-uint private constant N_P= 20;
-
-
- error  CantRegister();
+    uint private constant N_P= 20;
+    error  CantRegister();
     
     
-    
-
 struct Race {
         string name;
         uint maxTickets;

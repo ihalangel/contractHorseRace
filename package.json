@@ -8,6 +8,7 @@
   "private": null,
   "dependencies": {
     "@openzeppelin/contracts": "^4.5.0",
-    "chai": "^4.3.6"
+    "chai": "^4.3.6",
+    "ethers": "^5.6.1"
   }
 }

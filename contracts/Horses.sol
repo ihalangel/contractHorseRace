@@ -13,7 +13,7 @@ contract Horses is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Ownable
     using Counters for Counters.Counter;
       using Strings for uint256;
  //address payable owner;
-    event NewHorse(string name, uint dna, uint hb1, uint hb2, uint hb3,  uint health, uint racelimit, uint monta);
+    event NewHorse(string name, uint dna, uint8[3]  hb1, uint health, uint racelimit, uint monta);
    /** event TraineHorse
     event */
 
@@ -23,8 +23,8 @@ contract Horses is ERC721, ERC721Enumerable, ERC721URIStorage, Pausable, Ownable
      
     uint  dnaDigits = 14;
     uint  dnaModulus = 10 ** dnaDigits;
-    uint lvlDigits= 2;
-    uint lvlDigits2= 4;
+    uint  lvlDigits= 2;
+    uint  lvlDigits2= 4;
     uint  lvlget25= (10 ** lvlDigits) / 4;
     uint  lvlget00= 10 ** lvlDigits;
     uint  lvlget0000= 10 ** lvlDigits2;
@@ -77,9 +77,7 @@ struct  Stats{
     
 struct Horse {
         string name;
-        uint hb1;
-        uint hb2;
-        uint hb3;
+        uint8[3] hb;// HB 1->3
         StatsGen statsGen;
         Stats stats;
         Races races;   }
@@ -102,9 +100,11 @@ struct Horse {
         _unpause();
     }
 
-    function safeMint(string calldata _name) public payable {
+    function safeMint(string memory _name) public payable {
         uint valor= msg.value;
-        uint hbx = _lvlbuyer(valor);
+        uint hb_x = _lvlbuyer(valor);
+        uint8 hbx = uint8(hb_x);
+
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(msg.sender, tokenId);
@@ -112,19 +112,17 @@ struct Horse {
         
     }
 
-      function _createminthorse(string memory _name,uint _hbx) internal {
+      function _createminthorse(string memory _name,uint8 _hbx) internal {
         uint randDna = _gRamDna(_name);
         uint health = 100;
         uint monta = (randDna % lvlget00) + 25;
-        uint hb1 = (_hbx + _gRamLv(_name));
-        uint hb2 = (_hbx + _gRamLv("polka"));
-        uint hb3 = (_hbx + _gRamLv("horse"));     
+        uint8[3] memory hb1 = _gRamLv(_hbx, _name); 
         uint racelimit= (randDna % lvlget0000) /2 +1000;
         Stats memory stats=Stats({_hb1:0 , _hb2:0 , _hb3:0, lastfed:block.timestamp, health:100,racelimit:racelimit ,monta:monta});
         StatsGen memory statsGen=StatsGen({ dna:0 , dad:0 , mom:0, birthdate:block.timestamp, generation:0});
         Races memory races= Races({ winners:0 , continues:0 ,skill:0,lastrace:block.timestamp ,claim: false, raced: new uint256[](0) });
-        horses.push(Horse( _name, hb1, hb2, hb3,statsGen, stats, races));
-        emit NewHorse(_name,randDna, hb1, hb2, hb3, health, racelimit, monta);
+        horses.push(Horse( _name, hb1,statsGen, stats, races));
+        emit NewHorse(_name,randDna,hb1,health, racelimit, monta);
     }
 
 
@@ -170,9 +168,17 @@ struct Horse {
     }
     
     
-    function _gRamLv(string memory _str) private view returns (uint) {
-       uint rand = uint(keccak256(abi.encodePacked(_str, block.timestamp)));
-        return rand % lvlget25;
+    function _gRamLv( uint m_hbx, string memory _str) private view returns (uint8[3] memory hbs) {
+     uint rand =uint(keccak256(abi.encodePacked(_str, block.timestamp)));
+     uint hb1= m_hbx + (rand % lvlget25);
+     uint8 h_1= uint8(hb1);
+     uint rand2 =uint(keccak256(abi.encodePacked("Mom", block.timestamp)));
+     uint hb2= m_hbx + (rand2 % lvlget25);
+     uint8 h_2= uint8(hb2);
+     uint rand3 =uint(keccak256(abi.encodePacked("Dad", block.timestamp)));
+     uint hb3=m_hbx + (rand3 % lvlget25);
+     uint8 h_3= uint8(hb3);
+           hbs= [h_1,h_2,h_3];
         
     }               
 
@@ -222,6 +228,23 @@ struct Horse {
      function _GetStructStast(uint _tokenId) view public returns(uint _hb1,uint _hb2, uint _hb3,uint lastfed, uint health, uint racelimit, uint monta){
        Horse storage p = horses[_tokenId];
        return (p.stats._hb1, p.stats._hb2, p.stats._hb3, p.stats.lastfed,p.stats.health,p.stats.racelimit,p.stats.monta); 
+     
+     /*_hb1=horses[_tokenId].stats._hb1;
+     _hb2=horses[_tokenId].stats._hb2;
+     _hb3=horses[_tokenId].stats._hb3;
+     lastfed=horses[_tokenId].stats.lastfed;
+     health=horses[_tokenId].stats.health;
+     racelimit=horses[_tokenId].stats.racelimit;
+     monta=horses[_tokenId].stats.monta;*/
+     }
+
+
+     function getSkill(uint _tokenId) view public returns(uint8 Skill_1,uint8 Skill_2, uint8 Skill_3){
+       Horse storage p = horses[_tokenId];
+       Skill_1 = p.hb[0];
+       Skill_2 = p.hb[1];
+       Skill_3 = p.hb[2];
+    //   return (p.stats._hb1, p.stats._hb2, p.stats._hb3, p.stats.lastfed,p.stats.health,p.stats.racelimit,p.stats.monta); 
      
      /*_hb1=horses[_tokenId].stats._hb1;
      _hb2=horses[_tokenId].stats._hb2;
